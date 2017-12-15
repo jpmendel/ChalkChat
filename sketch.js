@@ -24,8 +24,23 @@ var userIDInput;
 var friendIDInput;
 var submitButton;
 
+const Color = {
+  BLACK: { r: 0, g: 0, b: 0 },
+  WHITE: { r: 255, g: 255, b: 255 },
+  RED: { r: 255, g: 0, b: 0 },
+  GREEN: { r: 0, g: 255, b: 0 },
+  BLUE: { r: 0, g: 0, b: 255 },
+  ORANGE: { r: 255, g: 165, b: 0 },
+  PINK: { r: 255, g: 0, b: 255 },
+  LIGHT_BLUE: { r: 100, g: 149, b: 255 }
+};
+
 function setup() {
   initialized = false;
+  createLoginScreen();
+}
+
+function createLoginScreen() {
   userIDLabel = createSpan("Enter your name:");
   userIDLabel.size(200, 20);
   userIDLabel.position(40, 43);
@@ -59,18 +74,18 @@ function createApp(user, friend) {
   initializeFirebase();
   userID = user;
   friendID = friend;
-  userBG = new HitArea(-550, 75, 500, 400);
-  friendBG = new HitArea(50, 75, 500, 400);
-  sendButton = new HitArea(userBG.x + 75, userBG.y + userBG.h + 100, 150, 40);
-  userClearButton = new HitArea(userBG.x + 275, userBG.y + userBG.h + 100, 150, 40);
-  friendClearButton = new HitArea(friendBG.x + 175, friendBG.y + friendBG.h + 25, 150, 40);
+  userBG = new HitArea(-550, 75, 500, 400, Color.BLACK);
+  friendBG = new HitArea(50, 75, 500, 400, Color.BLACK);
+  sendButton = new TextButton(userBG.x + 75, userBG.y + userBG.h + 100, 150, 40, "Send", Color.LIGHT_BLUE);
+  userClearButton = new TextButton(userBG.x + 275, userBG.y + userBG.h + 100, 150, 40, "Clear", Color.LIGHT_BLUE);
+  friendClearButton = new TextButton(friendBG.x + 175, friendBG.y + friendBG.h + 25, 150, 40, "Clear", Color.LIGHT_BLUE);
   colorButtons = [
-    new ColorHitArea(userBG.x + 50, userBG.y + userBG.h + 25, 50, 50, { r: 255, g: 255, b: 255 }), // White
-    new ColorHitArea(userBG.x + 120, userBG.y + userBG.h + 25, 50, 50, { r: 255, g: 0, b: 0 }), // Red
-    new ColorHitArea(userBG.x + 190, userBG.y + userBG.h + 25, 50, 50, { r: 0, g: 255, b: 0 }), // Green
-    new ColorHitArea(userBG.x + 260, userBG.y + userBG.h + 25, 50, 50, { r: 0, g: 0, b: 255 }), // Blue
-    new ColorHitArea(userBG.x + 330, userBG.y + userBG.h + 25, 50, 50, { r: 255, g: 135, b: 0 }), // Orange
-    new ColorHitArea(userBG.x + 400, userBG.y + userBG.h + 25, 50, 50, { r: 255, g: 0, b: 255 })  // Pink
+    new ColorButton(userBG.x + 50, userBG.y + userBG.h + 25, 50, 50, Color.WHITE),
+    new ColorButton(userBG.x + 120, userBG.y + userBG.h + 25, 50, 50, Color.RED),
+    new ColorButton(userBG.x + 190, userBG.y + userBG.h + 25, 50, 50, Color.GREEN),
+    new ColorButton(userBG.x + 260, userBG.y + userBG.h + 25, 50, 50, Color.BLUE),
+    new ColorButton(userBG.x + 330, userBG.y + userBG.h + 25, 50, 50, Color.ORANGE),
+    new ColorButton(userBG.x + 400, userBG.y + userBG.h + 25, 50, 50, Color.PINK)
   ];
   drawColor = colorButtons[0].color;
   userDrawing = new Drawing(userBG);
@@ -158,30 +173,17 @@ function createText() {
 }
 
 function createButtons() {
-  stroke(100, 149, 255);
-  strokeWeight(1);
-  fill(100, 149, 255);
-  textButton("Send", sendButton.x, sendButton.y, sendButton.w, sendButton.h);
-  textButton("Clear", userClearButton.x, userClearButton.y, userClearButton.w, userClearButton.h);
-  textButton("Clear", friendClearButton.x, friendClearButton.y, friendClearButton.w, friendClearButton.h);
+  sendButton.draw();
+  userClearButton.draw();
+  friendClearButton.draw();
   for (let button of colorButtons) {
-    stroke(0);
-    if (button.color === drawColor) {
-      strokeWeight(3);
-    } else {
-      strokeWeight(1);
-    }
-    fill(button.color.r, button.color.g, button.color.b);
-    rect(button.x, button.y, button.w, button.h);
+    button.draw();
   }
 }
 
 function createDrawingBackgrounds() {
-  stroke(0);
-  strokeWeight(1);
-  fill(0);
-  rect(userBG.x, userBG.y, userBG.w, userBG.h);
-  rect(friendBG.x, friendBG.y, friendBG.w, friendBG.h);
+  userBG.draw();
+  friendBG.draw();
 }
 
 function uploadDrawing() {
@@ -204,18 +206,6 @@ function onUserClearButtonPress() {
 
 function onFriendClearButtonPress() {
   friendDrawing.resetDrawing();
-}
-
-function textButton(displayText, x, y, w, h) {
-  rect(x, y, w, h);
-  push();
-  textSize(16);
-  textAlign(CENTER, CENTER);
-  stroke(255);
-  strokeWeight(0.5);
-  fill(255);
-  text(displayText, x + w / 2, y + h / 2);
-  pop();
 }
 
 class Drawing {
@@ -257,32 +247,23 @@ class Drawing {
 
   startTrace() {
     this.isDrawing = true;
-    this.currentTrace.clearPoints();
-    this.currentTrace.color = drawColor;
-    this.addTrace(this.currentTrace);
+    this.traces.push(new Trace(drawColor));
+    this.currentTrace = this.traces[this.traces.length - 1];
   }
 
   endTrace() {
     this.isDrawing = false;
   }
 
-  addTrace(trace) {
-    let copy = new Trace();
-    copy.points = trace.points;
-    copy.color = trace.color;
-    this.traces.push(copy);
-  }
-
   resetDrawing() {
-    this.currentTrace.clearPoints();
     this.traces = [];
   }
 }
 
 class Trace {
-  constructor() {
+  constructor(color) {
     this.points = [];
-    this.color = { r: 255, g: 255, b: 255 };
+    this.color = color || Color.WHITE
   }
 
   addPoint(point) {
@@ -299,11 +280,19 @@ class Trace {
 }
 
 class HitArea {
-  constructor(x, y, w, h) {
+  constructor(x, y, w, h, color) {
     this.x = x;
     this.y = y;
     this.w = w;
     this.h = h;
+    this.color = color || Color.WHITE;
+  }
+
+  draw() {
+    stroke(this.color.r, this.color.g, this.color.b);
+    strokeWeight(1);
+    fill(this.color.r, this.color.g, this.color.b);
+    rect(this.x, this.y, this.w, this.h);
   }
 
   containsPoint(point) {
@@ -315,16 +304,35 @@ class HitArea {
   }
 }
 
-class ColorHitArea extends HitArea {
-  constructor(x, y, w, h, color) {
-    super(x, y, w, h);
-    this.color = color;
+class TextButton extends HitArea {
+  constructor(x, y, w, h, text, color) {
+    super(x, y, w, h, color);
+    this.text = text;
   }
 
-  isColorWhite() {
-    if (this.color.r === 255 && this.color.g === 255 && this.color.b === 255) {
-      return true;
-    }
-    return false;
+  draw() {
+    stroke(this.color.r, this.color.g, this.color.b);
+    strokeWeight(1);
+    fill(this.color.r, this.color.g, this.color.b);
+    rect(this.x, this.y, this.w, this.h);
+    textSize(16);
+    textAlign(CENTER, CENTER);
+    stroke(255);
+    strokeWeight(0.5);
+    fill(255);
+    text(this.text, this.x + this.w / 2, this.y + this.h / 2);
+  }
+}
+
+class ColorButton extends HitArea {
+  constructor(x, y, w, h, color) {
+    super(x, y, w, h, color);
+  }
+
+  draw() {
+    stroke(0);
+    strokeWeight((this.color === drawColor) ? 3 : 1);
+    fill(this.color.r, this.color.g, this.color.b);
+    rect(this.x, this.y, this.w, this.h);
   }
 }
